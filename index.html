@@ -687,10 +687,13 @@
           const frequency = t < 0.16 ? 740 : t < 0.3 ? 980 : 1320;
           sample = Math.sin(2 * Math.PI * frequency * t) * envelope * 0.72;
         } else {
-          const pulse = 0.7 + 0.3 * Math.sin(2 * Math.PI * 9 * t);
-          const low = Math.sin(2 * Math.PI * 180 * t);
-          const edge = Math.sin(2 * Math.PI * 360 * t) * 0.32;
-          sample = (low + edge) * envelope * pulse * 0.86;
+          const frequency = 245 - 38 * Math.min(t / 0.55, 1);
+          const brassEnvelope = Math.min(1, t / 0.04) * Math.exp(-1.15 * t);
+          const fundamental = Math.sin(2 * Math.PI * frequency * t);
+          const second = Math.sin(2 * Math.PI * frequency * 2 * t) * 0.62;
+          const third = Math.sin(2 * Math.PI * frequency * 3 * t) * 0.34;
+          const fourth = Math.sin(2 * Math.PI * frequency * 4 * t) * 0.18;
+          sample = (fundamental + second + third + fourth) * brassEnvelope * 0.58;
         }
         samples.push(sample);
       }
@@ -730,7 +733,7 @@
 
     function playBuzz() {
       if (playAudioElement(buzzAudio)) return;
-      playTone({ type: "sawtooth", frequency: 180, endFrequency: 150, duration: 0.7, volume: 0.58 });
+      playTone({ type: "sawtooth", frequency: 245, endFrequency: 205, duration: 0.7, volume: 0.62 });
     }
 
     function cellKey(col, row) {
