@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 142.4 156.22" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#FFFFFF;}
+	.st1{fill:#EF3D5A;}
+	.st2{fill:#71C7F5;}
+	.st3{fill:#A4D165;}
+	.st4{fill:none;}
+	.st5{fill:#AF7AC5;}
+	.st6{fill:#FF8343;}
+	.st7{fill:#F0588D;}
+	.st8{fill:#48D2B0;}
+	.st9{fill:#FFB312;}
+	.st10{fill:#FAA018;}
+	.st11{fill:#FFC241;}
+	.st12{fill:#A67C52;}
+</style>
+<g transform="translate(-750.2 -868.781)">
+<g>
+	<path class="st1" d="M821.4,1022c68.2,0,20.9-91.5,62.6-101.9c-4.6-1.2-9-1.8-13-1.8c-26.1,0-33.8,23.1-49.6,42.9
+		c-15.7-19.8-23.5-42.9-49.6-42.9c-4.1,0-8.4,0.6-13,1.8C800.5,930.5,753.2,1022,821.4,1022z"/>
+	<path class="st1" d="M815.8,942.2c1.8,2.7,3.7,5.4,5.6,8.2c2-2.7,3.8-5.5,5.6-8.2c4.6-6.9,9.4-13.8,15.2-19.4
+		c-4.2-10.1-11.6-18.9-20.8-25.6c-9.2,6.7-16.6,15.5-20.8,25.6C806.4,928.4,811.1,935.4,815.8,942.2z"/>
+	<ellipse transform="matrix(0.229 -0.9734 0.9734 0.229 -222.986 1477.78)" class="st1" cx="821.4" cy="879.7" rx="7.9" ry="7.9"/>
+	<ellipse transform="matrix(0.229 -0.9734 0.9734 0.229 -217.462 1528.441)" class="st1" cx="856.1" cy="901.5" rx="7.9" ry="7.9"/>
+	
+		<ellipse transform="matrix(0.8656 -0.5007 0.5007 0.8656 -345.6322 515.0238)" class="st1" cx="786.7" cy="901.5" rx="7.9" ry="7.9"/>
+</g>
+</g>
+</svg>

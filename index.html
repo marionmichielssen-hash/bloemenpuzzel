@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bloemenpuzzel</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4faf6;
+      --ink: #26332b;
+      --muted: #66746b;
+      --grid: #b7d1c0;
+      --open: #e7f3ec;
+      --tile: #ffffff;
+      --tile-border: #d6e5db;
+      --tile-dark: #aebfb5;
+      --select: #167f68;
+      --wrong: #c45b45;
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #edf8f1, var(--bg));
+      color: var(--ink);
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 16px;
+      padding: 20px clamp(12px, 3vw, 32px) 26px;
+    }
+
+    .topbar {
+      width: min(980px, 100%);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 3vw, 2.35rem);
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .counter,
+    .status {
+      min-height: 44px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #d6e5db;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 10px 24px rgba(42, 69, 51, 0.1);
+      font-weight: 700;
+    }
+
+    .counter {
+      min-width: 116px;
+      padding: 8px 14px;
+      color: var(--muted);
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 8px;
+      background: #167f68;
+      color: #fff;
+      font: inherit;
+      font-weight: 750;
+      cursor: pointer;
+      box-shadow: 0 9px 18px rgba(22, 127, 104, 0.22);
+    }
+
+    button:hover {
+      background: #116d59;
+    }
+
+    button:disabled {
+      opacity: 1;
+    }
+
+    button:focus-visible,
+    .piece:focus-visible {
+      outline: 4px solid rgba(196, 91, 69, 0.34);
+      outline-offset: 3px;
+    }
+
+    .play-area {
+      display: grid;
+      place-items: center;
+      min-height: 0;
+    }
+
+    .table {
+      width: min(980px, 100%);
+      min-height: min(760px, calc(100vh - 122px));
+      display: grid;
+      grid-template-rows: 1fr auto;
+      justify-items: center;
+      align-items: center;
+      gap: 14px;
+      padding: clamp(10px, 2.5vw, 24px);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.28), transparent 30%),
+        linear-gradient(180deg, #2f86bd 0%, #1f6fa6 100%);
+      border: 1px solid #185d8b;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 22px 58px rgba(31, 63, 85, 0.2);
+    }
+
+    .board {
+      --size: min(74vh, 88vw, 720px);
+      --cell: calc(var(--size) / 10);
+      position: relative;
+      width: var(--size);
+      height: var(--size);
+      border: 3px solid #155980;
+      border-radius: 8px;
+      overflow: hidden;
+      background:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+        var(--open);
+      background-size: var(--cell) var(--cell);
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.36), 0 14px 24px rgba(15, 52, 77, 0.22);
+    }
+
+    .piece {
+      --col: 0;
+      --row: 0;
+      --move-x: 0px;
+      --move-y: 0px;
+      position: absolute;
+      left: calc(var(--col) * var(--cell));
+      top: calc(var(--row) * var(--cell));
+      width: var(--cell);
+      height: var(--cell);
+      padding: 0;
+      border: 1px solid rgba(75, 103, 85, 0.22);
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      overflow: hidden;
+      transform: translate(0, 0);
+      transition: transform 1100ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 220ms ease, filter 160ms ease;
+      z-index: 3;
+    }
+
+    .piece-face {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      border-radius: 0;
+      background: var(--tile);
+      border: 0;
+      box-shadow: none;
+      overflow: hidden;
+    }
+
+    .piece img {
+      width: 82%;
+      height: 82%;
+      max-width: 82%;
+      max-height: 82%;
+      object-fit: contain;
+      pointer-events: none;
+      display: block;
+    }
+
+    .piece.free:hover {
+      transform: translateY(-1px);
+    }
+
+    .piece.blocked {
+      cursor: default;
+      filter: saturate(0.72) brightness(0.86);
+    }
+
+    .piece.blocked img {
+      opacity: 0.48;
+    }
+
+    .piece.selected .piece-face {
+      box-shadow: inset 0 0 0 4px var(--select);
+    }
+
+    .piece.wrong .piece-face {
+      box-shadow: inset 0 0 0 4px var(--wrong);
+    }
+
+    .piece.moving {
+      pointer-events: none;
+      transform: translate(var(--move-x), var(--move-y));
+      z-index: 12;
+    }
+
+    .piece.gone {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .status {
+      min-width: min(420px, 100%);
+      padding: 9px 16px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .status.good {
+      color: var(--select);
+      border-color: rgba(22, 127, 104, 0.42);
+    }
+
+    .status.done {
+      color: #9a4b32;
+      border-color: rgba(196, 91, 69, 0.45);
+    }
+
+    .celebration {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      z-index: 30;
+      overflow: hidden;
+    }
+
+    .celebration.hidden {
+      display: none;
+    }
+
+    .confetti {
+      position: absolute;
+      left: var(--x);
+      top: -14px;
+      width: var(--w);
+      height: var(--h);
+      border-radius: 2px;
+      background: var(--color);
+      opacity: 0;
+      transform: rotate(var(--r));
+      animation: confetti-fall var(--duration) ease-in forwards;
+      animation-delay: var(--delay);
+    }
+
+    .celebration-card {
+      width: min(82%, 360px);
+      min-height: 156px;
+      display: grid;
+      place-items: center;
+      gap: 16px;
+      padding: 24px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid #d6e5db;
+      box-shadow: 0 18px 42px rgba(17, 46, 60, 0.22);
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+      transition: opacity 260ms ease, transform 260ms ease;
+      text-align: center;
+    }
+
+    .celebration.show-card .celebration-card {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .compliment {
+      font-size: clamp(1.65rem, 4vw, 2.35rem);
+      line-height: 1.08;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .center-new-game {
+      min-width: 160px;
+      min-height: 52px;
+      font-size: 1.08rem;
+    }
+
+    @keyframes confetti-fall {
+      0% {
+        opacity: 0;
+        transform: translate3d(0, -20px, 0) rotate(var(--r));
+      }
+
+      12% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0.96;
+        transform: translate3d(var(--drift), calc(var(--board-size) + 34px), 0) rotate(calc(var(--r) + 520deg));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .app {
+        padding: 14px 10px 18px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .controls {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .table {
+        min-height: calc(100vh - 158px);
+      }
+
+      .piece {
+        padding: 0;
+        border-radius: 0;
+      }
+
+      .piece-face {
+        border-radius: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <h1>Bloemenpuzzel</h1>
+      <div class="controls" aria-label="Spelstatus">
+        <div class="counter" id="counter">45 paren</div>
+        <button type="button" id="newGame">Nieuw spel</button>
+      </div>
+    </header>
+
+    <section class="play-area" aria-label="Puzzelbord">
+      <div class="table">
+        <div class="board" id="board">
+          <div class="celebration hidden" id="celebration" aria-live="polite">
+            <div class="celebration-card">
+              <div class="compliment" id="compliment">Proficiat!</div>
+              <button type="button" class="center-new-game" id="centerNewGame">Nieuw Spel</button>
+            </div>
+          </div>
+        </div>
+        <div class="status" id="status" role="status" aria-live="polite">Kies twee gelijke vrije bloemen</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const size = 10;
+    const holes = [
+      [4, 3], [5, 3],
+      [3, 4], [4, 4], [5, 4], [6, 4],
+      [4, 5], [5, 5], [6, 5],
+      [5, 6]
+    ].map(([col, row]) => ({ col, row }));
+    const holeKeys = new Set(holes.map(({ col, row }) => cellKey(col, row)));
+    const totalPairs = (size * size - holes.length) / 2;
+    const board = document.querySelector("#board");
+    const counter = document.querySelector("#counter");
+    const status = document.querySelector("#status");
+    const newGameButton = document.querySelector("#newGame");
+    const celebration = document.querySelector("#celebration");
+    const compliment = document.querySelector("#compliment");
+    const centerNewGameButton = document.querySelector("#centerNewGame");
+
+    const flowerTypes = Array.from({ length: 30 }, (_, index) => ({
+      id: index + 1,
+      src: `assets/bloemen/bloem${index + 1}.svg`
+    }));
+    const compliments = [
+      "Proficiat!",
+      "Mooi gedaan!",
+      "Goed gevonden!",
+      "Knap opgelost!",
+      "Fantastisch!",
+      "Super gedaan!",
+      "Dat was slim!",
+      "Jij bent goed bezig!",
+      "Bravo!",
+      "Uitstekend werk!",
+      "Helemaal juist!",
+      "Perfect opgelost!",
+      "Wat knap van jou!",
+      "Topprestatie!",
+      "Geweldig gedaan!",
+      "Je hebt het gevonden!",
+      "Dat heb je snel gedaan!",
+      "Schitterend!",
+      "Slim bekeken!",
+      "Knap werk!",
+      "Goed gespeeld!",
+      "Dat was niet makkelijk!",
+      "Jij kan dit echt goed!",
+      "Weer een puzzel opgelost!",
+      "Top gedaan!",
+      "Helemaal correct!",
+      "Sterk werk!",
+      "Je bent een puzzelkampioen!",
+      "Nice!",
+      "Dat verdient een applaus!",
+      "Super slim!",
+      "Indrukwekkend!",
+      "Prachtig opgelost!",
+      "Goed denkwerk!",
+      "Jij hebt talent!",
+      "Helemaal raak!",
+      "Wat een topper!",
+      "Echt goed gedaan!",
+      "Je hebt het perfect gedaan!",
+      "Wauw, knap!",
+      "Dat was een moeilijke!",
+      "Jij geeft niet op!",
+      "Je bent superscherp!",
+      "Opnieuw juist!",
+      "Jij bent niet te stoppen!",
+      "Knappe prestatie!",
+      "Goed gecombineerd!",
+      "Alles klopt!",
+      "Je hebt het door!",
+      "Hoera, opgelost!"
+    ];
+    const confettiColors = [
+      "#EF3D5A", "#71C7F5", "#A4D165", "#AF7AC5", "#FF8343",
+      "#F0588D", "#48D2B0", "#FFB312", "#FAA018", "#FFC241"
+    ];
+    const pieces = [];
+    let selected = null;
+    let matchedPairs = 0;
+    let busy = false;
+
+    function shuffle(items) {
+      const copy = [...items];
+      for (let i = copy.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function generatePositions() {
+      const positions = [];
+
+      for (let row = 0; row < size; row += 1) {
+        for (let col = 0; col < size; col += 1) {
+          if (!holeKeys.has(cellKey(col, row))) {
+            positions.push({ col, row });
+          }
+        }
+      }
+
+      return positions;
+    }
+
+    function openRegionsFor(occupied) {
+      const visited = new Set();
+      const regions = new Map();
+      let regionId = 0;
+
+      for (let row = 0; row < size; row += 1) {
+        for (let col = 0; col < size; col += 1) {
+          const key = cellKey(col, row);
+          if (occupied.has(key) || visited.has(key)) continue;
+
+          const queue = [{ col, row }];
+          visited.add(key);
+          while (queue.length) {
+            const cell = queue.shift();
+            regions.set(cellKey(cell.col, cell.row), regionId);
+            neighbors(cell.col, cell.row).forEach((next) => {
+              const nextKey = cellKey(next.col, next.row);
+              if (!occupied.has(nextKey) && !visited.has(nextKey)) {
+                visited.add(nextKey);
+                queue.push(next);
+              }
+            });
+          }
+          regionId += 1;
+        }
+      }
+
+      return regions;
+    }
+
+    function adjacentRegionsFor(position, regions, occupied) {
+      const ids = new Set();
+      neighbors(position.col, position.row).forEach((cell) => {
+        if (!occupied.has(cellKey(cell.col, cell.row))) {
+          ids.add(regions.get(cellKey(cell.col, cell.row)));
+        }
+      });
+      ids.delete(undefined);
+      return ids;
+    }
+
+    function planSolvablePairs(positions) {
+      const remaining = new Map(positions.map((position) => [cellKey(position.col, position.row), position]));
+      const solutionPairs = [];
+
+      while (remaining.size > 0) {
+        const occupied = new Set(remaining.keys());
+        const regions = openRegionsFor(occupied);
+        const byRegion = new Map();
+
+        [...remaining.values()].forEach((position) => {
+          adjacentRegionsFor(position, regions, occupied).forEach((regionId) => {
+            if (!byRegion.has(regionId)) byRegion.set(regionId, []);
+            byRegion.get(regionId).push(position);
+          });
+        });
+
+        const candidates = [...byRegion.values()]
+          .filter((group) => group.length >= 2)
+          .sort((a, b) => b.length - a.length);
+
+        if (!candidates.length) {
+          throw new Error("Geen oplosbare volgende zet gevonden.");
+        }
+
+        const pair = shuffle(candidates[0]).slice(0, 2);
+        solutionPairs.push(pair);
+        pair.forEach((position) => remaining.delete(cellKey(position.col, position.row)));
+      }
+
+      return solutionPairs;
+    }
+
+    function assignFlowers(solutionPairs) {
+      const flowerOrder = shuffle(flowerTypes);
+      return solutionPairs.flatMap(([first, second], pairIndex) => {
+        const flower = flowerOrder[pairIndex % flowerOrder.length];
+        return [
+          { ...first, flower },
+          { ...second, flower }
+        ];
+      });
+    }
+
+    function buildPuzzle() {
+      const positions = generatePositions();
+      return shuffle(assignFlowers(planSolvablePairs(positions)));
+    }
+
+    function setStatus(text, mode = "") {
+      status.textContent = text;
+      status.className = `status ${mode}`.trim();
+    }
+
+    function updateCounter() {
+      const left = totalPairs - matchedPairs;
+      counter.textContent = left === 1 ? "1 paar" : `${left} paren`;
+    }
+
+    function cellKey(col, row) {
+      return `${col},${row}`;
+    }
+
+    function getPieceAt(col, row) {
+      return pieces.find((piece) => !piece.matched && piece.col === col && piece.row === row);
+    }
+
+    function openRegions() {
+      const occupied = new Set(pieces.filter((piece) => !piece.matched).map((piece) => cellKey(piece.col, piece.row)));
+      const visited = new Set();
+      const regions = new Map();
+      let regionId = 0;
+
+      for (let row = 0; row < size; row += 1) {
+        for (let col = 0; col < size; col += 1) {
+          const key = cellKey(col, row);
+          if (occupied.has(key) || visited.has(key)) continue;
+
+          const queue = [{ col, row }];
+          visited.add(key);
+          while (queue.length) {
+            const cell = queue.shift();
+            regions.set(cellKey(cell.col, cell.row), regionId);
+            neighbors(cell.col, cell.row).forEach((next) => {
+              const nextKey = cellKey(next.col, next.row);
+              if (!occupied.has(nextKey) && !visited.has(nextKey)) {
+                visited.add(nextKey);
+                queue.push(next);
+              }
+            });
+          }
+          regionId += 1;
+        }
+      }
+
+      return regions;
+    }
+
+    function neighbors(col, row) {
+      return [
+        { col: col - 1, row },
+        { col: col + 1, row },
+        { col, row: row - 1 },
+        { col, row: row + 1 }
+      ].filter((cell) => cell.col >= 0 && cell.col < size && cell.row >= 0 && cell.row < size);
+    }
+
+    function adjacentRegions(piece, regions = openRegions()) {
+      const ids = new Set();
+      neighbors(piece.col, piece.row).forEach((cell) => {
+        const occupant = getPieceAt(cell.col, cell.row);
+        if (!occupant) {
+          ids.add(regions.get(cellKey(cell.col, cell.row)));
+        }
+      });
+      ids.delete(undefined);
+      return ids;
+    }
+
+    function shareOpenRegion(first, second) {
+      const regions = openRegions();
+      const firstRegions = adjacentRegions(first, regions);
+      const secondRegions = adjacentRegions(second, regions);
+      return [...firstRegions].some((id) => secondRegions.has(id));
+    }
+
+    function updateFreePieces() {
+      const regions = openRegions();
+      pieces.forEach((piece) => {
+        if (piece.matched) return;
+        const free = adjacentRegions(piece, regions).size > 0;
+        piece.free = free;
+        piece.element.classList.toggle("free", free);
+        piece.element.classList.toggle("blocked", !free);
+        piece.element.disabled = !free;
+        piece.element.setAttribute("aria-disabled", free ? "false" : "true");
+      });
+    }
+
+    function startGame() {
+      selected = null;
+      matchedPairs = 0;
+      busy = false;
+      pieces.length = 0;
+      board.querySelectorAll(".piece").forEach((piece) => piece.remove());
+      resetCelebration();
+      setStatus("Kies twee gelijke vrije bloemen");
+      updateCounter();
+
+      buildPuzzle().forEach((pieceData, index) => {
+        const element = document.createElement("button");
+        element.type = "button";
+        element.className = "piece";
+        element.style.setProperty("--col", pieceData.col);
+        element.style.setProperty("--row", pieceData.row);
+        element.dataset.flower = String(pieceData.flower.id);
+        element.setAttribute("aria-label", `Bloem ${pieceData.flower.id}`);
+
+        const face = document.createElement("span");
+        face.className = "piece-face";
+        const image = document.createElement("img");
+        image.src = pieceData.flower.src;
+        image.alt = "";
+        face.appendChild(image);
+        element.appendChild(face);
+        board.insertBefore(element, celebration);
+
+        const piece = {
+          ...pieceData,
+          id: index,
+          element,
+          matched: false,
+          free: false
+        };
+        pieces.push(piece);
+        element.addEventListener("click", () => choosePiece(piece));
+      });
+
+      updateFreePieces();
+    }
+
+    function choosePiece(piece) {
+      if (busy || piece.matched || !piece.free) {
+        if (!piece.free && !piece.matched) setStatus("Dit blokje raakt nog geen open ruimte");
+        return;
+      }
+
+      if (!selected) {
+        selected = piece;
+        piece.element.classList.add("selected");
+        setStatus("Kies dezelfde bloem aan dezelfde open ruimte");
+        return;
+      }
+
+      if (selected.id === piece.id) return;
+
+      if (selected.flower.id !== piece.flower.id) {
+        flashWrong(selected, piece, "Dat zijn twee verschillende bloemen");
+        return;
+      }
+
+      if (!shareOpenRegion(selected, piece)) {
+        flashWrong(selected, piece, "Deze bloemen liggen niet aan dezelfde open ruimte");
+        return;
+      }
+
+      matchPieces(selected, piece);
+    }
+
+    function flashWrong(first, second, text) {
+      busy = true;
+      setStatus(text);
+      second.element.classList.add("wrong");
+      window.setTimeout(() => {
+        first.element.classList.remove("selected");
+        second.element.classList.remove("wrong");
+        selected = null;
+        busy = false;
+        setStatus("Kies twee gelijke vrije bloemen");
+      }, 760);
+    }
+
+    function matchPieces(first, second) {
+      busy = true;
+      setStatus("Het tweede blokje schuift naar het eerste", "good");
+      const cell = board.getBoundingClientRect().width / size;
+      second.element.style.setProperty("--move-x", `${(first.col - second.col) * cell}px`);
+      second.element.style.setProperty("--move-y", `${(first.row - second.row) * cell}px`);
+      second.element.classList.add("moving");
+
+      window.setTimeout(() => {
+        first.matched = true;
+        second.matched = true;
+        first.element.classList.remove("selected");
+        second.element.classList.remove("moving");
+        first.element.classList.add("gone");
+        second.element.classList.add("gone");
+        matchedPairs += 1;
+        selected = null;
+        busy = false;
+        updateCounter();
+        updateFreePieces();
+
+        if (matchedPairs === totalPairs) {
+          finishPuzzle();
+        } else {
+          setStatus("Kies twee gelijke vrije bloemen");
+        }
+      }, 1160);
+    }
+
+    function resetCelebration() {
+      celebration.classList.add("hidden");
+      celebration.classList.remove("show-card");
+      celebration.querySelectorAll(".confetti").forEach((piece) => piece.remove());
+    }
+
+    function finishPuzzle() {
+      const text = compliments[Math.floor(Math.random() * compliments.length)];
+      compliment.textContent = text;
+      setStatus(text, "done");
+      launchConfetti();
+      window.setTimeout(() => {
+        celebration.classList.add("show-card");
+        centerNewGameButton.focus();
+      }, 2700);
+    }
+
+    function launchConfetti() {
+      resetCelebration();
+      celebration.classList.remove("hidden");
+      const boardSize = board.getBoundingClientRect().width;
+      celebration.style.setProperty("--board-size", `${boardSize}px`);
+
+      for (let i = 0; i < 120; i += 1) {
+        const piece = document.createElement("span");
+        piece.className = "confetti";
+        piece.style.setProperty("--x", `${Math.random() * 100}%`);
+        piece.style.setProperty("--w", `${6 + Math.random() * 8}px`);
+        piece.style.setProperty("--h", `${8 + Math.random() * 14}px`);
+        piece.style.setProperty("--r", `${Math.random() * 360}deg`);
+        piece.style.setProperty("--drift", `${-90 + Math.random() * 180}px`);
+        piece.style.setProperty("--duration", `${1900 + Math.random() * 1100}ms`);
+        piece.style.setProperty("--delay", `${Math.random() * 850}ms`);
+        piece.style.setProperty("--color", confettiColors[i % confettiColors.length]);
+        celebration.insertBefore(piece, celebration.firstChild);
+      }
+    }
+
+    newGameButton.addEventListener("click", startGame);
+    centerNewGameButton.addEventListener("click", startGame);
+    startGame();
+  </script>
+</body>
+</html>
