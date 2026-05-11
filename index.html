@@ -675,7 +675,7 @@
 
     function buildSound(kind) {
       const sampleRate = 44100;
-      const duration = kind === "ping" ? 0.42 : 0.5;
+      const duration = kind === "ping" ? 0.42 : 0.78;
       const total = Math.floor(sampleRate * duration);
       const samples = [];
 
@@ -687,7 +687,10 @@
           const frequency = t < 0.16 ? 740 : t < 0.3 ? 980 : 1320;
           sample = Math.sin(2 * Math.PI * frequency * t) * envelope * 0.72;
         } else {
-          sample = Math.sin(2 * Math.PI * 120 * t) * envelope * 0.82;
+          const pulse = 0.7 + 0.3 * Math.sin(2 * Math.PI * 9 * t);
+          const low = Math.sin(2 * Math.PI * 180 * t);
+          const edge = Math.sin(2 * Math.PI * 360 * t) * 0.32;
+          sample = (low + edge) * envelope * pulse * 0.86;
         }
         samples.push(sample);
       }
@@ -727,7 +730,7 @@
 
     function playBuzz() {
       if (playAudioElement(buzzAudio)) return;
-      playTone({ type: "sine", frequency: 120, endFrequency: 120, duration: 0.42, volume: 0.42 });
+      playTone({ type: "sawtooth", frequency: 180, endFrequency: 150, duration: 0.7, volume: 0.58 });
     }
 
     function cellKey(col, row) {
