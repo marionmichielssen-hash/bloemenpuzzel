@@ -599,6 +599,21 @@
       return audioContext;
     }
 
+    function unlockAudio() {
+      const context = getAudioContext();
+      if (!context) return;
+
+      const now = context.currentTime;
+      const gain = context.createGain();
+      const oscillator = context.createOscillator();
+      gain.gain.setValueAtTime(0.0001, now);
+      oscillator.frequency.setValueAtTime(440, now);
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.01);
+    }
+
     function playTone({ type = "sine", frequency = 440, endFrequency = frequency, duration = 0.16, volume = 0.12 }) {
       const context = getAudioContext();
       if (!context) return;
@@ -619,14 +634,14 @@
     }
 
     function playPing() {
-      playTone({ type: "sine", frequency: 740, endFrequency: 1180, duration: 0.14, volume: 0.1 });
+      playTone({ type: "sine", frequency: 740, endFrequency: 1180, duration: 0.14, volume: 0.18 });
       window.setTimeout(() => {
-        playTone({ type: "sine", frequency: 980, endFrequency: 1480, duration: 0.12, volume: 0.085 });
+        playTone({ type: "sine", frequency: 980, endFrequency: 1480, duration: 0.12, volume: 0.14 });
       }, 85);
     }
 
     function playBuzz() {
-      playTone({ type: "sawtooth", frequency: 150, endFrequency: 82, duration: 0.22, volume: 0.09 });
+      playTone({ type: "sawtooth", frequency: 150, endFrequency: 82, duration: 0.24, volume: 0.16 });
     }
 
     function cellKey(col, row) {
@@ -752,6 +767,8 @@
     }
 
     function choosePiece(piece) {
+      unlockAudio();
+
       if (busy || piece.matched || !piece.free) {
         if (!piece.free && !piece.matched) setStatus("Dit blokje raakt nog geen open ruimte");
         return;
@@ -861,8 +878,14 @@
       }
     }
 
-    newGameButton.addEventListener("click", startGame);
-    centerNewGameButton.addEventListener("click", startGame);
+    newGameButton.addEventListener("click", () => {
+      unlockAudio();
+      startGame();
+    });
+    centerNewGameButton.addEventListener("click", () => {
+      unlockAudio();
+      startGame();
+    });
     startGame();
   </script>
 </body>
