@@ -362,6 +362,7 @@
       <h1>Bloemenpuzzel</h1>
       <div class="controls" aria-label="Spelstatus">
         <div class="counter" id="counter">45 paren</div>
+        <button type="button" id="testSound">Test geluid</button>
         <button type="button" id="newGame">Nieuw spel</button>
       </div>
     </header>
@@ -395,6 +396,7 @@
     const counter = document.querySelector("#counter");
     const status = document.querySelector("#status");
     const newGameButton = document.querySelector("#newGame");
+    const testSoundButton = document.querySelector("#testSound");
     const celebration = document.querySelector("#celebration");
     const compliment = document.querySelector("#compliment");
     const centerNewGameButton = document.querySelector("#centerNewGame");
@@ -973,6 +975,12 @@
     centerNewGameButton.addEventListener("click", () => {
       unlockAudio();
       startGame();
+    });
+    testSoundButton.addEventListener("click", () => {
+      unlockAudio();
+      playPing();
+      window.setTimeout(playBuzz, 650);
+      setStatus("Testgeluid afgespeeld", "good");
     });
     startGame();
   </script>
