@@ -462,6 +462,7 @@
     let audioContext = null;
     let pingAudio = null;
     let buzzAudio = null;
+    let cheerAudio = null;
     const pieces = [];
     let selected = null;
     let matchedPairs = 0;
@@ -675,7 +676,7 @@
 
     function buildSound(kind) {
       const sampleRate = 44100;
-      const duration = kind === "ping" ? 0.42 : 0.78;
+      const duration = kind === "ping" ? 0.42 : kind === "buzz" ? 0.78 : 1.45;
       const total = Math.floor(sampleRate * duration);
       const samples = [];
 
@@ -686,7 +687,7 @@
         if (kind === "ping") {
           const frequency = t < 0.16 ? 740 : t < 0.3 ? 980 : 1320;
           sample = Math.sin(2 * Math.PI * frequency * t) * envelope * 0.72;
-        } else {
+        } else if (kind === "buzz") {
           const frequency = 245 - 38 * Math.min(t / 0.55, 1);
           const brassEnvelope = Math.min(1, t / 0.04) * Math.exp(-1.15 * t);
           const fundamental = Math.sin(2 * Math.PI * frequency * t);
@@ -694,6 +695,14 @@
           const third = Math.sin(2 * Math.PI * frequency * 3 * t) * 0.34;
           const fourth = Math.sin(2 * Math.PI * frequency * 4 * t) * 0.18;
           sample = (fundamental + second + third + fourth) * brassEnvelope * 0.58;
+        } else {
+          const chord = [523.25, 659.25, 783.99, 1046.5];
+          const chordTone = chord.reduce((sum, frequency) => (
+            sum + Math.sin(2 * Math.PI * frequency * t)
+          ), 0) / chord.length;
+          const sparkle = Math.sin(2 * Math.PI * 1567.98 * t) * 0.18;
+          const cheerNoise = (Math.random() * 2 - 1) * 0.12 * Math.sin(Math.PI * Math.min(t / 0.7, 1));
+          sample = (chordTone + sparkle + cheerNoise) * envelope * 0.64;
         }
         samples.push(sample);
       }
@@ -707,6 +716,7 @@
     function ensureAudioElements() {
       if (!pingAudio) pingAudio = buildSound("ping");
       if (!buzzAudio) buzzAudio = buildSound("buzz");
+      if (!cheerAudio) cheerAudio = buildSound("cheer");
     }
 
     function playAudioElement(audio) {
@@ -734,6 +744,13 @@
     function playBuzz() {
       if (playAudioElement(buzzAudio)) return;
       playTone({ type: "sawtooth", frequency: 245, endFrequency: 205, duration: 0.7, volume: 0.62 });
+    }
+
+    function playCheer() {
+      if (playAudioElement(cheerAudio)) return;
+      playTone({ type: "triangle", frequency: 523.25, endFrequency: 659.25, duration: 0.3, volume: 0.26 });
+      playDelayedTone(180, { type: "triangle", frequency: 659.25, endFrequency: 783.99, duration: 0.32, volume: 0.24 });
+      playDelayedTone(360, { type: "sine", frequency: 1046.5, endFrequency: 1318.5, duration: 0.42, volume: 0.2 });
     }
 
     function cellKey(col, row) {
@@ -942,6 +959,7 @@
       const text = compliments[Math.floor(Math.random() * compliments.length)];
       compliment.textContent = text;
       setStatus(text, "done");
+      playCheer();
       launchConfetti();
       window.setTimeout(() => {
         celebration.classList.add("show-card");
