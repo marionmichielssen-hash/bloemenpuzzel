@@ -460,6 +460,8 @@
       "#F0588D", "#48D2B0", "#FFB312", "#FAA018", "#FFC241"
     ];
     let audioContext = null;
+    let pingAudio = null;
+    let buzzAudio = null;
     const pieces = [];
     let selected = null;
     let matchedPairs = 0;
@@ -600,6 +602,7 @@
     }
 
     function unlockAudio() {
+      ensureAudioElements();
       const context = getAudioContext();
       if (!context) return;
 
@@ -633,17 +636,98 @@
       oscillator.stop(now + duration + 0.02);
     }
 
+    function makeWavDataUrl(samples, sampleRate = 44100) {
+      const dataSize = samples.length * 2;
+      const buffer = new ArrayBuffer(44 + dataSize);
+      const view = new DataView(buffer);
+      const writeString = (offset, value) => {
+        for (let i = 0; i < value.length; i += 1) view.setUint8(offset + i, value.charCodeAt(i));
+      };
+
+      writeString(0, "RIFF");
+      view.setUint32(4, 36 + dataSize, true);
+      writeString(8, "WAVE");
+      writeString(12, "fmt ");
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeString(36, "data");
+      view.setUint32(40, dataSize, true);
+
+      let offset = 44;
+      samples.forEach((sample) => {
+        const clamped = Math.max(-1, Math.min(1, sample));
+        view.setInt16(offset, clamped * 32767, true);
+        offset += 2;
+      });
+
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      bytes.forEach((byte) => {
+        binary += String.fromCharCode(byte);
+      });
+      return `data:audio/wav;base64,${btoa(binary)}`;
+    }
+
+    function buildSound(kind) {
+      const sampleRate = 44100;
+      const duration = kind === "ping" ? 0.42 : 0.34;
+      const total = Math.floor(sampleRate * duration);
+      const samples = [];
+
+      for (let i = 0; i < total; i += 1) {
+        const t = i / sampleRate;
+        const envelope = Math.sin(Math.PI * i / total);
+        let sample;
+        if (kind === "ping") {
+          const frequency = t < 0.16 ? 740 : t < 0.3 ? 980 : 1320;
+          sample = Math.sin(2 * Math.PI * frequency * t) * envelope * 0.72;
+        } else {
+          const frequency = t < 0.16 ? 145 : 92;
+          sample = Math.sign(Math.sin(2 * Math.PI * frequency * t)) * envelope * 0.62;
+        }
+        samples.push(sample);
+      }
+
+      const audio = new Audio(makeWavDataUrl(samples, sampleRate));
+      audio.preload = "auto";
+      audio.volume = 1;
+      return audio;
+    }
+
+    function ensureAudioElements() {
+      if (!pingAudio) pingAudio = buildSound("ping");
+      if (!buzzAudio) buzzAudio = buildSound("buzz");
+    }
+
+    function playAudioElement(audio) {
+      ensureAudioElements();
+      if (!audio) return false;
+      audio.currentTime = 0;
+      const result = audio.play();
+      if (result && typeof result.catch === "function") {
+        result.catch(() => {});
+      }
+      return true;
+    }
+
     function playDelayedTone(delay, options) {
       window.setTimeout(() => playTone(options), delay);
     }
 
     function playPing() {
+      if (playAudioElement(pingAudio)) return;
       playTone({ type: "triangle", frequency: 660, endFrequency: 880, duration: 0.2, volume: 0.34 });
       playDelayedTone(115, { type: "triangle", frequency: 880, endFrequency: 1320, duration: 0.22, volume: 0.32 });
       playDelayedTone(235, { type: "sine", frequency: 1320, endFrequency: 1560, duration: 0.18, volume: 0.2 });
     }
 
     function playBuzz() {
+      if (playAudioElement(buzzAudio)) return;
       playTone({ type: "square", frequency: 190, endFrequency: 130, duration: 0.18, volume: 0.28 });
       playDelayedTone(90, { type: "square", frequency: 130, endFrequency: 92, duration: 0.2, volume: 0.24 });
     }
