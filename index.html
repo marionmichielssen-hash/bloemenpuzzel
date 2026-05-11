@@ -160,6 +160,8 @@
       top: calc(var(--row) * var(--cell));
       width: var(--cell);
       height: var(--cell);
+      min-width: 0;
+      min-height: 0;
       padding: 0;
       border: 1px solid rgba(75, 103, 85, 0.22);
       border-radius: 0;
@@ -167,7 +169,8 @@
       box-shadow: none;
       overflow: hidden;
       transform: translate(0, 0);
-      transition: transform 1100ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 220ms ease, filter 160ms ease;
+      transition: transform 520ms cubic-bezier(0.16, 0.9, 0.24, 1), opacity 160ms ease, filter 140ms ease;
+      will-change: transform, opacity;
       z-index: 3;
     }
 
@@ -456,6 +459,7 @@
       "#EF3D5A", "#71C7F5", "#A4D165", "#AF7AC5", "#FF8343",
       "#F0588D", "#48D2B0", "#FFB312", "#FAA018", "#FFC241"
     ];
+    let audioContext = null;
     const pieces = [];
     let selected = null;
     let matchedPairs = 0;
@@ -581,6 +585,48 @@
     function updateCounter() {
       const left = totalPairs - matchedPairs;
       counter.textContent = left === 1 ? "1 paar" : `${left} paren`;
+    }
+
+    function getAudioContext() {
+      if (!audioContext) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return null;
+        audioContext = new AudioContextClass();
+      }
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+      return audioContext;
+    }
+
+    function playTone({ type = "sine", frequency = 440, endFrequency = frequency, duration = 0.16, volume = 0.12 }) {
+      const context = getAudioContext();
+      if (!context) return;
+
+      const now = context.currentTime;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, now);
+      oscillator.frequency.exponentialRampToValueAtTime(endFrequency, now + duration);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(volume, now + 0.018);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start(now);
+      oscillator.stop(now + duration + 0.02);
+    }
+
+    function playPing() {
+      playTone({ type: "sine", frequency: 740, endFrequency: 1180, duration: 0.14, volume: 0.1 });
+      window.setTimeout(() => {
+        playTone({ type: "sine", frequency: 980, endFrequency: 1480, duration: 0.12, volume: 0.085 });
+      }, 85);
+    }
+
+    function playBuzz() {
+      playTone({ type: "sawtooth", frequency: 150, endFrequency: 82, duration: 0.22, volume: 0.09 });
     }
 
     function cellKey(col, row) {
@@ -735,6 +781,7 @@
 
     function flashWrong(first, second, text) {
       busy = true;
+      playBuzz();
       setStatus(text);
       second.element.classList.add("wrong");
       window.setTimeout(() => {
@@ -748,6 +795,7 @@
 
     function matchPieces(first, second) {
       busy = true;
+      playPing();
       setStatus("Het tweede blokje schuift naar het eerste", "good");
       const cell = board.getBoundingClientRect().width / size;
       second.element.style.setProperty("--move-x", `${(first.col - second.col) * cell}px`);
@@ -772,7 +820,7 @@
         } else {
           setStatus("Kies twee gelijke vrije bloemen");
         }
-      }, 1160);
+      }, 560);
     }
 
     function resetCelebration() {
