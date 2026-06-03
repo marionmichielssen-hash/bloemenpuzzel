@@ -135,7 +135,7 @@
 
     .board {
       --size: min(74vh, 88vw, 720px);
-      --cell: calc(var(--size) / 10);
+      --cell: calc(var(--size) / 8);
       position: relative;
       width: var(--size);
       height: var(--size);
@@ -361,7 +361,7 @@
     <header class="topbar">
       <h1>Bloemenpuzzel</h1>
       <div class="controls" aria-label="Spelstatus">
-        <div class="counter" id="counter">45 paren</div>
+        <div class="counter" id="counter">29 paren</div>
         <button type="button" id="newGame">Nieuw spel</button>
       </div>
     </header>
@@ -382,12 +382,11 @@
   </main>
 
   <script>
-    const size = 10;
+    const size = 8;
     const holes = [
-      [4, 3], [5, 3],
-      [3, 4], [4, 4], [5, 4], [6, 4],
-      [4, 5], [5, 5], [6, 5],
-      [5, 6]
+      [3, 2], [4, 2],
+      [2, 3], [3, 3], [4, 3],
+      [3, 4]
     ].map(([col, row]) => ({ col, row }));
     const holeKeys = new Set(holes.map(({ col, row }) => cellKey(col, row)));
     const totalPairs = (size * size - holes.length) / 2;
